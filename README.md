@@ -5,6 +5,7 @@
 ## 功能
 
 - `/proposal`: 7 角色輪流討論（1-3 輪）
+- `/idea`: 7 角色各自針對你的想法提出專業建議
 - `@ARASAKA_Planner ...`: 被 tag 的那隻 bot 會讀最近訊息並以該角色身份回答
 
 ## 重要前置（Discord Developer Portal）
@@ -62,7 +63,13 @@ Railway Logs 看到 `系統就緒` 即代表 bot 已上線。
 /proposal idea:我想做AI創業社群 rounds:2
 ```
 
-### B) 指定單一角色回覆
+### B) 7 角色想法評估
+
+```text
+/idea topic:我想做協助中小企業導入AI客服的顧問服務
+```
+
+### C) 指定單一角色回覆
 
 ```text
 @ARASAKA_Planner 請根據上面討論，幫我列下週執行計畫

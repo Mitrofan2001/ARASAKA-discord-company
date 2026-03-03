@@ -24,6 +24,12 @@ const commands = [
         .setMaxValue(3)
         .setRequired(false)
     ),
+  new SlashCommandBuilder()
+    .setName("idea")
+    .setDescription("讓七個角色各自對你的想法給專業意見")
+    .addStringOption((o) =>
+      o.setName("topic").setDescription("你的想法").setRequired(true)
+    ),
 ].map((c) => c.toJSON());
 
 (async () => {

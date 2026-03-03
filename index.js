@@ -107,6 +107,25 @@ async function askRoundLLM(agentPrompt, idea, transcript, round) {
   return response.output_text?.trim() || "（無回覆）";
 }
 
+async function askIdeaLLM(agentPrompt, topic) {
+  const input = [
+    { role: "system", content: `${agentPrompt} 全程用繁體中文，精簡且具體。` },
+    {
+      role: "user",
+      content:
+        `我的想法：${topic}\n\n` +
+        "請以你的角色身份提出建議：先給一句整體判斷，再給最多 6 點具體建議，最後補 1 個主要風險。",
+    },
+  ];
+
+  const response = await openai.responses.create({
+    model: MODEL,
+    input,
+  });
+
+  return response.output_text?.trim() || "（無回覆）";
+}
+
 function stripBotMention(content, botUserId) {
   if (!content) return "";
   const mentionPattern = new RegExp(`<@!?${botUserId}>`, "g");
@@ -155,6 +174,15 @@ async function safeAskRoundLLM(agent, idea, transcript, round) {
     return await askRoundLLM(agent.prompt, idea, transcript, round);
   } catch (err) {
     console.error(`[${agent.key}] LLM 呼叫失敗:`, err);
+    return "（本輪回覆失敗，請稍後重試）";
+  }
+}
+
+async function safeAskIdeaLLM(agent, topic) {
+  try {
+    return await askIdeaLLM(agent.prompt, topic);
+  } catch (err) {
+    console.error(`[${agent.key}] /idea 呼叫失敗:`, err);
     return "（本輪回覆失敗，請稍後重試）";
   }
 }
@@ -211,7 +239,32 @@ function setupMentionHandlers() {
 function setupSlashCommandHandler(commandBot) {
   commandBot.client.on("interactionCreate", async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
-    if (interaction.commandName !== "proposal") return;
+    if (interaction.commandName !== "proposal" && interaction.commandName !== "idea") return;
+
+    if (interaction.commandName === "idea") {
+      await interaction.deferReply();
+
+      const topic = interaction.options.getString("topic", true);
+      const channelId = interaction.channelId;
+
+      await interaction.editReply(`收到想法，開始由 7 位角色提供建議：${topic}`);
+
+      for (const agent of AGENTS) {
+        const answer = await safeAskIdeaLLM(agent, topic);
+        try {
+          await sendAsAgent(agent, channelId, `【${agent.key}｜想法評估】\n${answer}`);
+        } catch (err) {
+          console.error(`[${agent.key}] 訊息送出失敗:`, err);
+        }
+      }
+
+      try {
+        await sendAsAgent(commandBot, channelId, "想法評估結束。你可以再用 `/idea` 或 `/proposal`。");
+      } catch (err) {
+        console.error("結束訊息送出失敗:", err);
+      }
+      return;
+    }
 
     await interaction.deferReply();
 
