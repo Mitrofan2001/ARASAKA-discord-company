@@ -1,6 +1,21 @@
 # discord-7-bots
 
-7 個 Discord Bot 帳號在同一頻道輪流討論提案，由 Mentor bot 接收 `/proposal` 指令並協調發言。
+7 個 Discord Bot 帳號在同一頻道輪流討論提案，並支援 `@某一隻 bot` 讓該角色讀取聊天室近期訊息後回答。
+
+## 功能
+
+- `/proposal`: 7 角色輪流討論（1-3 輪）
+- `@ARASAKA_Planner ...`: 被 tag 的那隻 bot 會讀最近訊息並以該角色身份回答
+
+## 重要前置（Discord Developer Portal）
+
+7 個 bot 都要開啟：
+- `MESSAGE CONTENT INTENT`（Bot 頁面）
+
+7 個 bot 進伺服器都要有：
+- `View Channels`
+- `Send Messages`
+- `Read Message History`
 
 ## Railway 一鍵部署（電腦可關機）
 
@@ -12,25 +27,18 @@
 
 1. 開 [Railway](https://railway.app/) -> `New Project`
 2. 選 `Deploy from GitHub repo`
-3. 選你的 `discord-7-bots` repo
+3. 選你的 repo
 4. Railway 會自動使用專案內的 `railway.json` + `Dockerfile`
 
 ### 3) 設定環境變數（Railway Variables）
 
-把以下全部加進 Railway：
+完整清單在 [.env.example](/Users/mitrofan.tw/Side project/discord-7-bots/.env.example)。
 
-- `OPENAI_API_KEY`
-- `OPENAI_MODEL`（可選，預設 `gpt-4.1-mini`）
-- `COMMAND_BOT_TOKEN`
-- `COMMAND_BOT_CLIENT_ID`
-- `GUILD_ID`
-- `BOT_PLANNER_TOKEN`
-- `BOT_CONSULTANT_TOKEN`
-- `BOT_LEGAL_TOKEN`
-- `BOT_FINANCE_TOKEN`
-- `BOT_MARKETING_TOKEN`
-- `BOT_DESIGN_TOKEN`
-- `BOT_MENTOR_TOKEN`
+重點：
+- `OPENAI_API_KEY` 是 OpenAI 的
+- `BOT_*_TOKEN` 是 7 隻 Discord bot token（共 7 個不同 token）
+- `COMMAND_BOT_TOKEN` 可指定你要接 `/proposal` 的 bot（例如 Planner）
+- `COMMAND_BOT_CLIENT_ID` 要對應同一隻 bot 的 Application ID
 
 ### 4) 註冊 slash command（只要做一次）
 
@@ -44,55 +52,51 @@ npm run deploy
 
 ### 5) 確認服務啟動
 
-Railway Logs 看到 `系統就緒`，就代表 7 隻 bot 已上線。
+Railway Logs 看到 `系統就緒` 即代表 bot 已上線。
 
-### 6) 在 Discord 觸發
+## 使用方式
+
+### A) 7 角色討論
 
 ```text
 /proposal idea:我想做AI創業社群 rounds:2
 ```
 
-`rounds` 可省略，預設 2（範圍 1-3）。
+### B) 指定單一角色回覆
 
-## 自訂每個 AI 的個性與資歷（重點）
+```text
+@ARASAKA_Planner 請根據上面討論，幫我列下週執行計畫
+```
 
-請修改 [index.js](/Users/mitrofan.tw/Side project/discord-7-bots/index.js) 內的 `AGENTS` 陣列，每個角色都有自己的 `prompt`：
+被 tag 的 bot 會：
+- 讀取該頻道最近 `MENTION_HISTORY_LIMIT` 則訊息
+- 套用自己的角色 `prompt`
+- 回覆精簡建議
+
+## 自訂每個 AI 的個性與資歷
+
+修改 [index.js](/Users/mitrofan.tw/Side project/discord-7-bots/index.js) 內 `AGENTS` 陣列的 `prompt`：
 
 ```js
 const AGENTS = [
   {
     key: "企劃",
     token: process.env.BOT_PLANNER_TOKEN,
-    prompt: "你是企劃。給可執行方案：目標、里程碑、時程、風險。",
+    prompt: "你是企劃，12 年 B2B SaaS 經驗，風格務實保守...",
   },
-  // ...
 ];
 ```
 
-你可以直接把每個角色改成不同背景，例如：
-- 年資（例：`10 年 SaaS 產品策略經驗`）
-- 個性（例：`保守、風險優先` 或 `激進、成長優先`）
-- 回覆格式（例：`每次固定 4 點，最後給 1 個反對意見`）
-- 專長領域（例：`B2B、跨境電商、醫療法規`）
-
-只要改 `prompt` 內容，不需要改其他程式碼。
+你可在 prompt 裡定義：
+- 年資與背景
+- 語氣個性
+- 決策偏好（保守/成長）
+- 回覆格式
 
 ## 本機執行（開發用）
 
-1. 建 `.env`
-
 ```bash
 cp .env.example .env
-```
-
-2. 註冊指令
-
-```bash
 npm run deploy
-```
-
-3. 啟動
-
-```bash
 npm start
 ```
